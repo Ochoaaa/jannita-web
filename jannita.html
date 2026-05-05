@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Para ti, Jannita 🌙</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --deep:#050a18;--navy:#0a1628;
+  --rose:#e8637a;--rose-soft:#f4a0b0;
+  --gold:#d4a76a;--gold-soft:#f0d5a8;
+  --cream:#fdf6ee;--white:#ffffff;
+  --muted:rgba(255,255,255,0.45);--soft:rgba(255,255,255,0.7);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{background:var(--deep);color:var(--white);font-family:'DM Sans',sans-serif;overflow-x:hidden;}
+#stars-canvas{position:fixed;inset:0;z-index:0;pointer-events:none;}
+#hearts-canvas{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:0;transition:opacity 1s;}
+
+nav{position:fixed;top:0;left:0;right:0;z-index:50;padding:0 16px;height:52px;display:flex;align-items:center;justify-content:space-between;background:rgba(5,10,24,0.75);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,0.05);}
+.nav-logo{font-family:'Cormorant Garamond',serif;font-size:18px;font-style:italic;color:var(--rose-soft);}
+.nav-links{display:flex;gap:2px;}
+.nav-link{background:none;border:none;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;padding:8px 9px;cursor:pointer;transition:color .25s;border-radius:8px;}
+.nav-link:hover{color:var(--white);}
+
+#music-btn{position:fixed;bottom:24px;right:20px;z-index:100;width:46px;height:46px;border-radius:50%;background:rgba(232,99,122,0.2);border:1px solid rgba(232,99,122,0.35);color:var(--rose-soft);font-size:19px;display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(10px);transition:all .3s;}
+#music-btn.playing{background:rgba(232,99,122,0.35);box-shadow:0 0 18px rgba(232,99,122,0.35);}
+
+section{position:relative;z-index:2;padding:88px 24px 72px;max-width:480px;margin:0 auto;}
+
+/* HERO */
+#hero{min-height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:60px 24px 40px;}
+.hero-eyebrow{font-size:11px;font-weight:300;letter-spacing:4px;text-transform:uppercase;color:var(--gold);opacity:0;animation:fadeUp .9s .3s forwards;margin-bottom:20px;}
+.hero-title{font-family:'Cormorant Garamond',serif;font-size:clamp(46px,13vw,72px);font-weight:300;line-height:1.05;letter-spacing:-1px;opacity:0;animation:fadeUp 1s .6s forwards;}
+.hero-title span{color:var(--rose-soft);font-style:italic;}
+.hero-sub{font-size:14px;font-weight:300;color:var(--soft);letter-spacing:.5px;margin-top:18px;opacity:0;animation:fadeUp 1s 1s forwards;}
+.hero-divider{width:40px;height:1px;background:linear-gradient(90deg,transparent,var(--rose),transparent);margin:28px auto;opacity:0;animation:fadeIn 1s 1.3s forwards;}
+.hero-greeting{font-family:'Cormorant Garamond',serif;font-size:17px;font-style:italic;color:var(--gold-soft);opacity:0;animation:fadeUp 1s 1.5s forwards;min-height:26px;}
+.scroll-hint{position:absolute;bottom:32px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;opacity:0;animation:fadeIn 1s 2.2s forwards;}
+.scroll-hint span{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);}
+.scroll-arrow{width:1px;height:32px;background:linear-gradient(to bottom,var(--rose-soft),transparent);animation:scrollPulse 1.6s ease-in-out infinite;}
+
+.section-label{font-size:10px;letter-spacing:4px;text-transform:uppercase;color:var(--rose);margin-bottom:16px;display:block;}
+.section-title{font-family:'Cormorant Garamond',serif;font-size:clamp(28px,8vw,44px);font-weight:300;line-height:1.15;margin-bottom:8px;}
+.section-sub{font-size:13px;color:var(--muted);margin-bottom:36px;line-height:1.6;}
+.glow-sep{width:1px;height:60px;background:linear-gradient(to bottom,transparent,rgba(232,99,122,0.35),transparent);margin:0 auto;position:relative;z-index:2;}
+
+/* COUNTER */
+#counter{text-align:center;}
+.counter-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:28px;}
+.counter-card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:22px 10px;backdrop-filter:blur(8px);}
+.counter-num{font-family:'Cormorant Garamond',serif;font-size:clamp(36px,10vw,52px);font-weight:300;color:var(--rose-soft);line-height:1;display:block;}
+.counter-lbl{font-size:10px;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);margin-top:6px;display:block;}
+.counter-origin{font-family:'Cormorant Garamond',serif;font-size:15px;font-style:italic;color:var(--gold-soft);line-height:1.6;}
+
+/* TIMELINE */
+.timeline-list{position:relative;padding-left:28px;margin-top:36px;}
+.timeline-line{position:absolute;left:0;top:8px;bottom:8px;width:1px;background:linear-gradient(to bottom,var(--rose),rgba(232,99,122,0.1));}
+.tl-item{position:relative;margin-bottom:32px;opacity:0;transform:translateX(-20px);transition:opacity .6s,transform .6s;}
+.tl-item.visible{opacity:1;transform:translateX(0);}
+.tl-dot{position:absolute;left:-34px;top:6px;width:12px;height:12px;border-radius:50%;background:var(--rose);border:2px solid var(--deep);box-shadow:0 0 10px rgba(232,99,122,0.5);}
+.tl-card{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:18px 16px;transition:border-color .35s,background .35s;}
+.tl-card:hover{border-color:rgba(232,99,122,0.25);background:rgba(232,99,122,0.05);}
+.tl-date{font-size:10px;letter-spacing:2.5px;text-transform:uppercase;color:var(--gold);margin-bottom:6px;display:block;}
+.tl-title{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:400;margin-bottom:8px;line-height:1.25;}
+.tl-desc{font-size:13px;line-height:1.65;color:var(--soft);}
+
+/* LETTERS */
+#letters{text-align:center;}
+.letters-grid{display:flex;flex-direction:column;gap:12px;margin-top:32px;}
+.letter-btn{background:rgba(255,255,255,0.04);border:1px solid rgba(232,99,122,0.2);border-radius:16px;padding:18px 20px;color:var(--white);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:300;cursor:pointer;text-align:left;display:flex;align-items:center;gap:14px;transition:all .3s;backdrop-filter:blur(8px);}
+.letter-btn:hover{background:rgba(232,99,122,0.1);border-color:rgba(232,99,122,0.4);transform:translateY(-2px);}
+.letter-icon{font-size:22px;flex-shrink:0;}
+.letter-overlay{position:fixed;inset:0;z-index:200;background:rgba(5,10,24,0.92);backdrop-filter:blur(16px);display:flex;align-items:center;justify-content:center;padding:32px 24px;opacity:0;pointer-events:none;transition:opacity .4s;}
+.letter-overlay.open{opacity:1;pointer-events:all;}
+.letter-modal{max-width:360px;width:100%;text-align:center;transform:translateY(20px);transition:transform .4s;}
+.letter-overlay.open .letter-modal{transform:translateY(0);}
+.letter-modal-icon{font-size:40px;margin-bottom:20px;display:block;}
+.letter-modal-text{font-family:'Cormorant Garamond',serif;font-size:clamp(19px,5.5vw,25px);font-weight:300;font-style:italic;line-height:1.65;color:var(--cream);margin-bottom:32px;}
+.letter-close{background:rgba(232,99,122,0.15);border:1px solid rgba(232,99,122,0.3);border-radius:50px;color:var(--rose-soft);font-family:'DM Sans',sans-serif;font-size:13px;padding:12px 32px;cursor:pointer;transition:all .3s;}
+
+/* QUOTE */
+#quote{text-align:center;padding:60px 24px;}
+.quote-text{font-family:'Cormorant Garamond',serif;font-size:clamp(22px,6.5vw,34px);font-weight:300;font-style:italic;line-height:1.55;color:var(--gold-soft);}
+.quote-text::before{content:'"';font-size:80px;line-height:0;vertical-align:-28px;color:rgba(232,99,122,0.2);font-style:italic;margin-right:4px;}
+
+/* ANNIVERSARY */
+#anniversary{text-align:center;}
+.anniv-card{background:linear-gradient(135deg,rgba(232,99,122,0.1),rgba(212,167,106,0.07));border:1px solid rgba(232,99,122,0.2);border-radius:20px;padding:36px 24px;margin-top:28px;backdrop-filter:blur(8px);position:relative;overflow:hidden;}
+.anniv-card::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(232,99,122,0.1),transparent 65%);pointer-events:none;}
+.anniv-big{font-family:'Cormorant Garamond',serif;font-size:clamp(52px,15vw,80px);font-weight:300;color:var(--rose-soft);line-height:1;display:block;}
+.anniv-lbl{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-top:6px;display:block;}
+.anniv-msg{margin-top:18px;font-family:'Cormorant Garamond',serif;font-size:17px;font-style:italic;color:var(--gold-soft);line-height:1.6;}
+
+/* AUTH */
+.auth-wall{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:36px 24px;text-align:center;margin-top:28px;}
+.auth-wall p{font-family:'Cormorant Garamond',serif;font-size:17px;font-style:italic;color:var(--soft);margin-bottom:20px;line-height:1.6;}
+.auth-input{width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:14px 16px;color:var(--white);font-family:'DM Sans',sans-serif;font-size:15px;outline:none;transition:border-color .3s;letter-spacing:2px;}
+.auth-input:focus{border-color:rgba(232,99,122,0.5);}
+.btn-primary{background:linear-gradient(135deg,rgba(232,99,122,0.3),rgba(212,167,106,0.2));border:1px solid rgba(232,99,122,0.35);border-radius:50px;color:var(--white);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:400;padding:13px 36px;cursor:pointer;margin-top:14px;transition:all .3s;width:100%;}
+.btn-primary:hover{background:linear-gradient(135deg,rgba(232,99,122,0.45),rgba(212,167,106,0.3));}
+.btn-primary:active{transform:scale(0.97);}
+.auth-error{font-size:12px;color:var(--rose-soft);margin-top:10px;opacity:0;transition:opacity .3s;min-height:18px;}
+.auth-error.show{opacity:1;}
+
+/* NOTES */
+.notes-form{margin-top:28px;display:flex;flex-direction:column;gap:12px;}
+.author-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.author-btn{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px;color:var(--soft);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;transition:all .3s;text-align:center;}
+.author-btn.selected{background:rgba(232,99,122,0.15);border-color:rgba(232,99,122,0.45);color:var(--white);}
+.notes-textarea{width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:14px 16px;color:var(--white);font-family:'Cormorant Garamond',serif;font-size:17px;font-style:italic;outline:none;resize:none;min-height:100px;transition:border-color .3s;line-height:1.6;}
+.notes-textarea:focus{border-color:rgba(232,99,122,0.4);}
+.notes-textarea::placeholder{color:var(--muted);}
+.upload-label{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.04);border:1px dashed rgba(255,255,255,0.15);border-radius:12px;padding:14px 16px;cursor:pointer;font-size:13px;color:var(--muted);transition:border-color .3s;}
+.upload-label:hover{border-color:rgba(232,99,122,0.35);}
+.upload-preview-img{width:100%;border-radius:12px;margin-top:4px;object-fit:cover;max-height:220px;display:none;}
+.notes-list{margin-top:32px;display:flex;flex-direction:column;gap:16px;}
+.note-card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:18px;padding:20px 18px;opacity:0;transform:translateY(16px);transition:opacity .5s,transform .5s,border-color .3s;}
+.note-card.visible{opacity:1;transform:translateY(0);}
+.note-card:hover{border-color:rgba(232,99,122,0.2);}
+.note-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.note-author-tag{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);}
+.note-date-tag{font-size:11px;color:var(--muted);}
+.note-body{font-family:'Cormorant Garamond',serif;font-size:18px;font-style:italic;line-height:1.65;color:var(--cream);}
+.note-photo{width:100%;border-radius:12px;margin-top:12px;object-fit:cover;max-height:260px;}
+.empty-msg{text-align:center;font-family:'Cormorant Garamond',serif;font-size:17px;font-style:italic;color:var(--muted);padding:32px 0;}
+
+/* GALLERY */
+.gallery-form{margin-top:24px;display:flex;flex-direction:column;gap:12px;}
+.caption-input{width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px 16px;color:var(--white);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color .3s;}
+.caption-input:focus{border-color:rgba(232,99,122,0.4);}
+.caption-input::placeholder{color:var(--muted);}
+.gallery-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:28px;}
+.g-item{border-radius:14px;overflow:hidden;aspect-ratio:1;position:relative;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);opacity:0;transform:scale(0.94);transition:opacity .5s,transform .5s;}
+.g-item.visible{opacity:1;transform:scale(1);}
+.g-item img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s;}
+.g-item:hover img{transform:scale(1.05);}
+.g-caption{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(to top,rgba(5,10,24,0.85),transparent);padding:10px 12px 10px;font-family:'Cormorant Garamond',serif;font-size:13px;font-style:italic;color:var(--cream);transform:translateY(100%);transition:transform .35s;}
+.g-item:hover .g-caption{transform:translateY(0);}
+.g-badge{position:absolute;top:10px;right:10px;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;background:rgba(5,10,24,0.7);color:var(--gold);padding:3px 8px;border-radius:20px;backdrop-filter:blur(6px);}
+
+/* LOADING */
+.loading-dots{display:inline-flex;gap:4px;align-items:center;}
+.loading-dots span{width:5px;height:5px;border-radius:50%;background:var(--rose-soft);animation:dotPulse 1.2s ease-in-out infinite;}
+.loading-dots span:nth-child(2){animation-delay:.2s;}
+.loading-dots span:nth-child(3){animation-delay:.4s;}
+@keyframes dotPulse{0%,80%,100%{opacity:.2;transform:scale(.8);}40%{opacity:1;transform:scale(1);}}
+
+/* EASTER EGG */
+#easter-egg{position:fixed;inset:0;z-index:300;background:rgba(5,10,24,0.97);display:flex;align-items:center;justify-content:center;padding:32px;opacity:0;pointer-events:none;transition:opacity .5s;}
+#easter-egg.show{opacity:1;pointer-events:all;}
+.ee-inner{text-align:center;max-width:340px;}
+.ee-inner .ee-emoji{font-size:52px;display:block;margin-bottom:20px;}
+.ee-inner h2{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:300;font-style:italic;color:var(--rose-soft);line-height:1.4;margin-bottom:16px;}
+.ee-inner p{font-size:14px;color:var(--soft);line-height:1.7;margin-bottom:28px;}
+#easter-egg-close{background:none;border:1px solid rgba(255,255,255,0.15);border-radius:50px;color:var(--soft);font-family:'DM Sans',sans-serif;font-size:12px;padding:10px 28px;cursor:pointer;}
+
+footer{position:relative;z-index:2;text-align:center;padding:60px 24px 80px;}
+footer p{font-family:'Cormorant Garamond',serif;font-size:15px;font-style:italic;color:var(--muted);line-height:1.7;}
+footer .heart{color:var(--rose);font-style:normal;}
+
+.music-player {
+  margin-top: 20px;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+  backdrop-filter: blur(8px);
+}
+
+.netflix-row {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 10px 0;
+}
+
+.netflix-card {
+  min-width: 140px;
+  height: 200px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(232,99,122,0.2), rgba(0,0,0,0.6));
+  display: flex;
+  align-items: flex-end;
+  padding: 12px;
+  font-family: 'Cormorant Garamond', serif;
+  transition: transform .3s;
+}
+
+.netflix-card:hover {
+  transform: scale(1.08);
+}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(22px);}to{opacity:1;transform:translateY(0);}}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+@keyframes scrollPulse{0%,100%{opacity:.3;}50%{opacity:1;}}
+</style>
+</head>
+<body>
+
+<canvas id="stars-canvas"></canvas>
+<canvas id="hearts-canvas"></canvas>
+
+<nav>
+  <span class="nav-logo">J & E 🌙</span>
+  <div class="nav-links">
+    <button class="nav-link" onclick="goTo('hero')">Inicio</button>
+    <button class="nav-link" onclick="goTo('notes')">Notas</button>
+    <button class="nav-link" onclick="goTo('gallery')">Galería</button>
+  </div>
+</nav>
+
+<button id="music-btn">♪</button>
+<audio id="bg-audio" loop>
+  <source src="https://www.bensound.com/bensound-music/bensound-romantic.mp3" type="audio/mpeg">
+</audio>
+
+<!-- EASTER EGG -->
+<div id="easter-egg">
+  <div class="ee-inner">
+    <span class="ee-emoji">🌙✨</span>
+    <h2>Encontraste el secreto, Hediondagirl…</h2>
+    <p>Sí, pasé horas pensando en cada detalle de esto para ti. Porque te lo mereces todo. Cada línea de código lleva tu nombre aunque no lo veas. Te amo más de lo que puedo escribir aquí.</p>
+    <button id="easter-egg-close">Cerrar ✕</button>
+  </div>
+</div>
+
+<!-- LETTER OVERLAY -->
+<div class="letter-overlay" id="letter-overlay">
+  <div class="letter-modal">
+    <span class="letter-modal-icon" id="modal-icon">💌</span>
+    <p class="letter-modal-text" id="modal-text"></p>
+    <button class="letter-close" id="letter-close-btn">Cerrar ✕</button>
+  </div>
+</div>
+
+<!-- HERO -->
+<section id="hero">
+  <span class="hero-eyebrow">Tu espacio, tu universo</span>
+  <h1 class="hero-title" id="hero-title">Para ti,<br><span>Jannita</span> 🌙</h1>
+  <p class="hero-sub">Este es nuestro pequeño espacio</p>
+  <div class="hero-divider"></div>
+  <p class="hero-greeting" id="greeting"></p>
+  <div class="scroll-hint"><span>Explora</span><div class="scroll-arrow"></div></div>
+</section>
+
+<div class="glow-sep"></div>
+
+<!-- COUNTER -->
+<section id="counter">
+  <span class="section-label">Nuestro tiempo juntos</span>
+  <h2 class="section-title">Cada segundo<br>cuenta contigo</h2>
+  <p class="section-sub">Desde el momento en que dijiste que querías ser mi novia</p>
+  <div class="counter-grid">
+    <div class="counter-card"><span class="counter-num" id="c-days">0</span><span class="counter-lbl">Días</span></div>
+    <div class="counter-card"><span class="counter-num" id="c-hours">0</span><span class="counter-lbl">Horas</span></div>
+    <div class="counter-card"><span class="counter-num" id="c-mins">0</span><span class="counter-lbl">Minutos</span></div>
+  </div>
+  <p class="counter-origin">📍 Cafetería Biankefe<br>Tapachula, Chiapas — 2 de mayo, 2026</p>
+</section>
+
+<div class="glow-sep"></div>
+
+<!-- TIMELINE -->
+<section id="timeline">
+  <span class="section-label">Nuestra historia</span>
+  <h2 class="section-title">Momentos que<br>no olvidaré jamás</h2>
+  <div class="timeline-list">
+    <div class="timeline-line"></div>
+    <div class="tl-item"><div class="tl-dot"></div><div class="tl-card"><span class="tl-date">Nochistlán, Oaxaca</span><h3 class="tl-title">Campaña a Oaxaca 🛣️</h3><p class="tl-desc">El viaje de ida fue especial. Horas en camino, paisajes nuevos y tú presente en cada kilómetro. Ese viaje marcó algo distinto.</p></div></div>
+    <div class="tl-item"><div class="tl-dot"></div><div class="tl-card"><span class="tl-date">Primera ida</span><h3 class="tl-title">Volcán Tacaná — ida y vuelta 🌋</h3><p class="tl-desc">En el regreso, algo cambió dentro de mí. Sentí seguridad y confianza a tu lado. Como si ya supiera que quería que estuvieras en mi vida.</p></div></div>
+    <div class="tl-item"><div class="tl-dot"></div><div class="tl-card"><span class="tl-date">Unión Juárez</span><h3 class="tl-title">El balcón con el paisaje 📸</h3><p class="tl-desc">Esa foto en el balcón con la montaña detrás de ti. La luz, el momento, tu sonrisa. Imposible olvidarlo.</p></div></div>
+    <div class="tl-item"><div class="tl-dot"></div><div class="tl-card"><span class="tl-date">29 de marzo, 2026</span><h3 class="tl-title">El primer ramo de flores 🌸</h3><p class="tl-desc">Tu reacción, tu familia presente, ese momento cargado de ternura. Darte flores por primera vez fue uno de los momentos más bonitos.</p></div></div>
+    <div class="tl-item"><div class="tl-dot"></div><div class="tl-card"><span class="tl-date">6 y 7 de abril, 2026</span><h3 class="tl-title">Tercera ida al Tacaná 🌄</h3><p class="tl-desc">Dos días, conversaciones únicas. Me contaste cosas que guardé en el corazón. Ahí entendí lo especial que eres.</p></div></div>
+    <div class="tl-item"><div class="tl-dot"></div><div class="tl-card"><span class="tl-date">2 de mayo, 2026 · Biankefe</span><h3 class="tl-title">Dijiste que sí 💕</h3><p class="tl-desc">Estabas hermosísima. Me dijiste que querías ser mi novia. Ese instante lo llevo conmigo a todos lados, todos los días.</p></div></div>
+  </div>
+</section>
+
+<div class="glow-sep"></div>
+
+<!-- LETTERS -->
+<section id="letters">
+  <span class="section-label">Solo para ti, Pololita</span>
+  <h2 class="section-title">Cartas<br>del corazón</h2>
+  <p class="section-sub">Ábrelas cuando las necesites</p>
+  <div class="letters-grid">
+    <button class="letter-btn" data-msg="0"><span class="letter-icon">💛</span><span>Ábreme cuando necesites amor</span></button>
+    <button class="letter-btn" data-msg="1"><span class="letter-icon">🌙</span><span>Ábreme cuando me extrañes</span></button>
+    <button class="letter-btn" data-msg="2"><span class="letter-icon">💌</span><span>Ábreme cuando quieras recordar cuánto te amo</span></button>
+  </div>
+</section>
+
+<div class="glow-sep"></div>
+
+<section id="music">
+  <span class="section-label">Nuestra música</span>
+  <h2 class="section-title">Lo que suena<br>cuando pienso en ti</h2>
+  <p class="section-sub">Cada canción tiene un pedacito de nosotros</p>
+
+  <div class="music-player">
+      <iframe data-testid="embed-iframe" style="border-radius:12px" src="https://open.spotify.com/embed/playlist/3J5tawxpLhClSRoIk9vCB3?utm_source=generator" width="100%" height="352" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+  </div>
+</section>
+
+<!-- QUOTE -->
+<section id="quote">
+  <p class="quote-text">Esto no es solo código… eres tú en cada línea."</p>
+</section>
+
+<div class="glow-sep"></div>
+
+<!-- NOTES -->
+<section id="notes">
+  <span class="section-label">Nuestras palabras</span>
+  <h2 class="section-title">Notitas<br>de los dos</h2>
+  <p class="section-sub">Un espacio para dejar lo que sentimos</p>
+
+  <div class="auth-wall" id="notes-auth">
+    <p>Este espacio es solo para nosotros dos 🔐</p>
+    <input class="auth-input" id="notes-pass" type="password" placeholder="Contraseña…" autocomplete="off">
+    <p class="auth-error" id="notes-err"></p>
+    <button class="btn-primary" onclick="unlockSection('notes')">Entrar</button>
+  </div>
+
+  <div id="notes-content" style="display:none;">
+    <div class="notes-form">
+      <div class="author-row">
+        <button class="author-btn selected" id="n-author-me" onclick="setNoteAuthor('yo')">✍️ Soy Lias</button>
+        <button class="author-btn" id="n-author-her" onclick="setNoteAuthor('Jannita')">🌸 Soy Jannita</button>
+      </div>
+      <textarea class="notes-textarea" id="note-text" placeholder="Escribe algo desde el corazón…" rows="4"></textarea>
+      <label class="upload-label" for="note-img-input">
+        <span>📷</span><span id="note-img-lbl">Adjuntar foto (opcional)</span>
+      </label>
+      <input type="file" id="note-img-input" accept="image/*" style="display:none;">
+      <img class="upload-preview-img" id="note-preview" alt="">
+      <button class="btn-primary" id="note-submit-btn" onclick="submitNote()">Guardar notita 💌</button>
+    </div>
+    <div class="notes-list" id="notes-list"></div>
+  </div>
+</section>
+
+<div class="glow-sep"></div>
+
+<!-- GALLERY -->
+<section id="gallery">
+  <span class="section-label">Nuestros recuerdos</span>
+  <h2 class="section-title">Galería<br>de momentos</h2>
+  <p class="section-sub">Cada foto guarda algo especial</p>
+
+  <div class="auth-wall" id="gallery-auth">
+    <p>Solo para nosotros dos 🔐</p>
+    <input class="auth-input" id="gallery-pass" type="password" placeholder="Contraseña…" autocomplete="off">
+    <p class="auth-error" id="gallery-err"></p>
+    <button class="btn-primary" onclick="unlockSection('gallery')">Entrar</button>
+  </div>
+
+  <div id="gallery-content" style="display:none;">
+    <div class="gallery-form">
+      <div class="author-row">
+        <button class="author-btn selected" id="g-author-me" onclick="setGalleryAuthor('yo')">🐵 Soy Lias</button>
+        <button class="author-btn" id="g-author-her" onclick="setGalleryAuthor('Jannita')">🌸 Soy Jannita</button>
+      </div>
+      <label class="upload-label" for="gallery-img-input">
+        <span>🖼️</span><span id="gallery-img-lbl">Seleccionar foto…</span>
+      </label>
+      <input type="file" id="gallery-img-input" accept="image/*" style="display:none;">
+      <img class="upload-preview-img" id="gallery-preview" alt="">
+      <input class="caption-input" id="gallery-caption" placeholder="Pie de foto (opcional)…">
+      <button class="btn-primary" id="gallery-submit-btn" onclick="submitGallery()">Subir foto 📸</button>
+    </div>
+    <div class="gallery-grid" id="gallery-grid"></div>
+  </div>
+</section>
+
+<!-- ANNIVERSARY -->
+<section id="anniversary">
+  <span class="section-label">Próximo aniversario</span>
+  <h2 class="section-title">Un año<br>a tu lado</h2>
+  <div class="anniv-card">
+    <span class="anniv-big" id="anniv-days">—</span>
+    <span class="anniv-lbl" id="anniv-lbl"></span>
+    <p class="anniv-msg" id="anniv-msg"></p>
+  </div>
+</section>
+
+<footer>
+  <p>Hecho con cada pedacito de mi corazón<br>para la persona más especial de mi mundo.</p>
+  <p style="margin-top:12px;font-size:13px;">Te amo, Jannita <span class="heart">♥</span></p>
+</footer>
+
+<script>
+const { createClient } = supabase;
+const sb = createClient(
+  'https://frxyhmoeiwffpxpdxczk.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZyeHlobW9laXdmZnB4cGR4Y3prIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwMDMwMjgsImV4cCI6MjA5MzU3OTAyOH0.zJw7YeIOPYzZHKUauE-Jk0d4AsK0EyRgnyrGBNPlBG4'
+);
+const PWD = 'JannitaYLias';
+
+/* STARS */
+(function(){
+  const c=document.getElementById('stars-canvas'),ctx=c.getContext('2d');
+  let s=[],W,H;
+  const rs=()=>{W=c.width=innerWidth;H=c.height=innerHeight;};
+  const init=()=>{s=[];for(let i=0;i<160;i++)s.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.2+.2,a:Math.random(),ds:(Math.random()-.5)*.002,vy:Math.random()*.08+.02});};
+  const draw=()=>{ctx.clearRect(0,0,W,H);s.forEach(p=>{p.a+=p.ds;if(p.a<=0||p.a>=1)p.ds=-p.ds;p.y+=p.vy;if(p.y>H){p.y=0;p.x=Math.random()*W;}ctx.save();ctx.globalAlpha=p.a;ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();ctx.restore();});requestAnimationFrame(draw);};
+  addEventListener('resize',()=>{rs();init();});rs();init();draw();
+})();
+
+/* HEARTS */
+(function(){
+  const c=document.getElementById('hearts-canvas'),ctx=c.getContext('2d');
+  let h=[],W,H,on=false;
+  const rs=()=>{W=c.width=innerWidth;H=c.height=innerHeight;};
+  addEventListener('resize',rs);rs();
+  const hrt=(x,y,sz)=>{ctx.beginPath();ctx.moveTo(x,y+sz*.3);ctx.bezierCurveTo(x,y,x-sz,y,x-sz,y+sz*.4);ctx.bezierCurveTo(x-sz,y+sz*.8,x,y+sz*1.2,x,y+sz*1.4);ctx.bezierCurveTo(x,y+sz*1.2,x+sz,y+sz*.8,x+sz,y+sz*.4);ctx.bezierCurveTo(x+sz,y,x,y,x,y+sz*.3);ctx.fill();};
+  const draw=()=>{ctx.clearRect(0,0,W,H);h=h.filter(p=>p.y>-30);h.forEach(p=>{p.y+=p.vy;p.x+=p.vx;p.a-=.0018;ctx.save();ctx.globalAlpha=Math.max(0,p.a);ctx.fillStyle=`hsl(${p.hue},80%,70%)`;hrt(p.x,p.y,p.size);ctx.restore();});if(on&&h.length<80&&Math.random()<.15)h.push({x:Math.random()*W,y:H+20,size:Math.random()*8+4,a:Math.random()*.4+.2,vy:-(Math.random()*.8+.4),vx:(Math.random()-.5)*.4,hue:Math.random()*30+340});requestAnimationFrame(draw);};
+  draw();
+  window.activateHearts=v=>{on=v;c.style.opacity=v?'1':'0';};
+})();
+
+/* GREETING */
+(()=>{const h=new Date().getHours();document.getElementById('greeting').textContent=h>=5&&h<12?'☀️ Buenos días, mi amor…':h>=12&&h<19?'🌸 Buenas tardes, hermosa…':'🌙 Buenas noches, Pololita…';})();
+
+/* COUNTER */
+(()=>{
+  const st=new Date('2026-05-02T19:46:00-06:00');
+  const upd=()=>{const d=Date.now()-st,s=Math.floor(d/1e3),m=Math.floor(s/60),hr=Math.floor(m/60),dy=Math.floor(hr/24);document.getElementById('c-days').textContent=dy;document.getElementById('c-hours').textContent=hr%24;document.getElementById('c-mins').textContent=m%60;};
+  upd();setInterval(upd,3e4);
+})();
+
+/* ANNIVERSARY */
+(()=>{
+  const diff=new Date('2027-05-02T19:46:00-06:00')-new Date();
+  const el=document.getElementById('anniv-days'),msg=document.getElementById('anniv-msg'),lbl=document.getElementById('anniv-lbl');
+  if(diff<=0){el.textContent='🎉';lbl.textContent='¡Hoy es nuestro aniversario!';msg.textContent='Un año entero amándote. Gracias por cada día, Jannita.';}
+  else{const dy=Math.ceil(diff/864e5);el.textContent=dy;lbl.textContent='días para el 2 de mayo, 2027';msg.textContent=dy===1?'¡Mañana es nuestro aniversario! 🌹':'Cada uno de esos días te voy a amar más que el anterior.';}
+})();
+
+/* SCROLL OBSERVER */
+const obs=new IntersectionObserver(e=>e.forEach(n=>{if(n.isIntersecting)n.target.classList.add('visible');}),{threshold:.12});
+document.querySelectorAll('.tl-item').forEach(el=>obs.observe(el));
+
+/* LETTERS */
+const LMS=[
+  {icon:'💛',text:'No sabes cuánta alegría y amor reboza mi corazón. Quiero recordarte todo el tiempo lo mucho que te amo, Jannita.'},
+  {icon:'🌙',text:'No soporto un día sin saber de ti. Tu compañía y atención me generan una calidez que no encuentro en ningún otro lugar del mundo.'},
+  {icon:'💌',text:'Quiero estar contigo todo el tiempo… y toda la vida. Eso no es poesía, es lo que siento cada vez que pienso en ti, Pololita.'}
+];
+document.querySelectorAll('.letter-btn').forEach(b=>b.addEventListener('click',()=>{
+  const m=LMS[+b.dataset.msg];
+  document.getElementById('modal-icon').textContent=m.icon;
+  document.getElementById('modal-text').textContent=m.text;
+  document.getElementById('letter-overlay').classList.add('open');
+}));
+document.getElementById('letter-close-btn').onclick=()=>document.getElementById('letter-overlay').classList.remove('open');
+document.getElementById('letter-overlay').onclick=function(e){if(e.target===this)this.classList.remove('open');};
+
+/* MUSIC */
+const audio=document.getElementById('bg-audio'),mb=document.getElementById('music-btn');
+let playing=false;
+mb.onclick=()=>{playing=!playing;if(playing){audio.play().catch(()=>{});mb.textContent='♬';mb.classList.add('playing');activateHearts(true);}else{audio.pause();mb.textContent='♪';mb.classList.remove('playing');}};
+
+/* EASTER EGG */
+let taps=0,tt;
+document.getElementById('hero-title').addEventListener('click',()=>{
+  clearTimeout(tt);if(++taps>=5){taps=0;document.getElementById('easter-egg').classList.add('show');activateHearts(true);}
+  tt=setTimeout(()=>taps=0,1800);
+});
+document.getElementById('easter-egg-close').onclick=()=>document.getElementById('easter-egg').classList.remove('show');
+
+/* NAV */
+window.goTo=id=>document.getElementById(id).scrollIntoView({behavior:'smooth'});
+
+/* LOADING HTML */
+const loadingHTML='<div class="empty-msg"><span class="loading-dots"><span></span><span></span><span></span></span></div>';
+
+/* ═══════════════════
+   AUTH
+═══════════════════ */
+function unlockSection(sec){
+  const pass=document.getElementById(sec+'-pass').value;
+  const err=document.getElementById(sec+'-err');
+  if(pass===PWD){
+    document.getElementById(sec+'-auth').style.display='none';
+    document.getElementById(sec+'-content').style.display='block';
+    sec==='notes'?loadNotes():loadGallery();
+  } else {
+    err.textContent='Contraseña incorrecta ✕';
+    err.classList.add('show');
+    setTimeout(()=>err.classList.remove('show'),2500);
+  }
+}
+document.getElementById('notes-pass').onkeydown=e=>{if(e.key==='Enter')unlockSection('notes');};
+document.getElementById('gallery-pass').onkeydown=e=>{if(e.key==='Enter')unlockSection('gallery');};
+
+/* ═══════════════════
+   NOTES
+═══════════════════ */
+let noteAuthor='yo', noteFile=null;
+
+window.setNoteAuthor=a=>{
+  noteAuthor=a;
+  document.getElementById('n-author-me').classList.toggle('selected',a==='yo');
+  document.getElementById('n-author-her').classList.toggle('selected',a==='Jannita');
+};
+
+document.getElementById('note-img-input').onchange=function(){
+  const f=this.files[0];if(!f)return;
+  noteFile=f;
+  document.getElementById('note-img-lbl').textContent=f.name;
+  const p=document.getElementById('note-preview');
+  p.src=URL.createObjectURL(f);p.style.display='block';
+};
+
+window.submitNote=async()=>{
+  const txt=document.getElementById('note-text').value.trim();
+  if(!txt&&!noteFile)return;
+  const btn=document.getElementById('note-submit-btn');
+  btn.innerHTML=loadingHTML;btn.disabled=true;
+
+  let image_url=null;
+  if(noteFile){
+    const path=`notes/${Date.now()}.${noteFile.name.split('.').pop()}`;
+    await sb.storage.from('photos').upload(path,noteFile,{upsert:true});
+    const {data:u}=sb.storage.from('photos').getPublicUrl(path);
+    image_url=u.publicUrl;
+  }
+  await sb.from('notes').insert({author:noteAuthor,content:txt||null,image_url});
+  document.getElementById('note-text').value='';
+  document.getElementById('note-img-lbl').textContent='Adjuntar foto (opcional)';
+  document.getElementById('note-preview').style.display='none';
+  noteFile=null;btn.textContent='Guardar notita 💌';btn.disabled=false;
+  loadNotes();
+};
+
+async function loadNotes(){
+  const list=document.getElementById('notes-list');
+  list.innerHTML=loadingHTML;
+  const {data}=await sb.from('notes').select('*').order('created_at',{ascending:false});
+  if(!data||!data.length){list.innerHTML='<p class="empty-msg">Aún no hay notitas… ¡sé el primero! 🌸</p>';return;}
+  list.innerHTML='';
+  data.forEach((n,i)=>{
+    const d=new Date(n.created_at).toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'});
+    const card=document.createElement('div');
+    card.className='note-card';
+    card.innerHTML=`
+      <div class="note-header">
+        <span class="note-author-tag">${n.author==='yo'?'Lias 🐵':'Jannita 🌸'}</span>
+        <span class="note-date-tag">${d}</span>
+      </div>
+      ${n.content?`<p class="note-body">${n.content}</p>`:''}
+      ${n.image_url?`<img class="note-photo" src="${n.image_url}" loading="lazy" alt="">`:''}
+    `;
+    list.appendChild(card);
+    requestAnimationFrame(()=>setTimeout(()=>card.classList.add('visible'),i*80));
+  });
+}
+
+/* ═══════════════════
+   GALLERY
+═══════════════════ */
+let galleryAuthor='yo', galleryFile=null;
+
+window.setGalleryAuthor=a=>{
+  galleryAuthor=a;
+  document.getElementById('g-author-me').classList.toggle('selected',a==='yo');
+  document.getElementById('g-author-her').classList.toggle('selected',a==='Jannita');
+};
+
+document.getElementById('gallery-img-input').onchange=function(){
+  const f=this.files[0];if(!f)return;
+  galleryFile=f;
+  document.getElementById('gallery-img-lbl').textContent=f.name;
+  const p=document.getElementById('gallery-preview');
+  p.src=URL.createObjectURL(f);p.style.display='block';
+};
+
+window.submitGallery=async()=>{
+  if(!galleryFile)return;
+  const btn=document.getElementById('gallery-submit-btn');
+  btn.innerHTML=loadingHTML;btn.disabled=true;
+  const path=`gallery/${Date.now()}.${galleryFile.name.split('.').pop()}`;
+  const {error}=await sb.storage.from('photos').upload(path,galleryFile,{upsert:true});
+  if(error){btn.textContent='Error :(';btn.disabled=false;return;}
+  const {data:u}=sb.storage.from('photos').getPublicUrl(path);
+  const caption=document.getElementById('gallery-caption').value.trim()||null;
+  await sb.from('gallery').insert({author:galleryAuthor,image_url:u.publicUrl,caption});
+  document.getElementById('gallery-img-lbl').textContent='Seleccionar foto…';
+  document.getElementById('gallery-preview').style.display='none';
+  document.getElementById('gallery-caption').value='';
+  galleryFile=null;btn.textContent='Subir foto 📸';btn.disabled=false;
+  loadGallery();
+};
+
+async function loadGallery(){
+  const grid=document.getElementById('gallery-grid');
+  grid.innerHTML=loadingHTML;
+  const {data}=await sb.from('gallery').select('*').order('created_at',{ascending:false});
+  if(!data||!data.length){grid.innerHTML='<p class="empty-msg" style="grid-column:1/-1">La galería está vacía… ¡sube la primera foto! 📸</p>';return;}
+  grid.innerHTML='';
+  data.forEach((g,i)=>{
+    const item=document.createElement('div');
+    item.className='g-item';
+    item.innerHTML=`
+      <img src="${g.image_url}" alt="${g.caption||''}" loading="lazy">
+      <span class="g-badge">${g.author==='yo'?'Lias':'Jannita'}</span>
+      ${g.caption?`<div class="g-caption">${g.caption}</div>`:''}
+    `;
+    grid.appendChild(item);
+    requestAnimationFrame(()=>setTimeout(()=>item.classList.add('visible'),i*60));
+  });
+}
+</script>
+</body>
+</html>
